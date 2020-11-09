@@ -1,0 +1,43 @@
+steps:
+  # Run the docker build
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--build-arg",
+        "build_target=$_BUILD_TARGET",
+        "-t",
+        "gcr.io/$PROJECT_ID/$_SERVICE_NAME",
+        ".",
+      ]
+
+  # push the docker image to the private GCR registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/$_SERVICE_NAME"]
+
+  # deploy to cloud run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      [
+        "run",
+        "deploy",
+        "$_SERVICE_NAME",
+        "--image",
+        "gcr.io/$PROJECT_ID/$_SERVICE_NAME",
+        "--region",
+        "us-central1",
+        "--platform",
+        "managed",
+        "--no-allow-unauthenticated",
+        "--set-env-vars",
+        "CLOUD_RUN_PROJECT_HASH=$_RUN_HASH"
+      ]
+
+images:
+  - "gcr.io/$PROJECT_ID/$_SERVICE_NAME"
+
+substitutions:
+  _BUILD_TARGET: "server"
+  _SERVICE_NAME: "tacoserver"
+  _RUN_HASH: "HASHVALUE"
